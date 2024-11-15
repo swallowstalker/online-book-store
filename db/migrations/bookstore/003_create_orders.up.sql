@@ -1,0 +1,11 @@
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS orders (
+    "id" BIGSERIAL NOT NULL PRIMARY KEY,
+    "user_id" BIGINT NOT NULL,
+    "book_id" BIGINT NOT NULL,
+    "amount" BIGINT NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+COMMIT;
