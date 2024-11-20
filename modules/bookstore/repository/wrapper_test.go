@@ -3,6 +3,7 @@ package repository_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -228,46 +229,44 @@ func (s *WrapperTestSuite) TestCreateOrder() {
 	now := time.Now()
 	wrapper := repository.NewDbWrapperRepo(s.querierRepo)
 
-	querierParams := db.CreateOrderParams{
-		UserID: 9919,
-		BookID: 123,
-		Amount: 10,
-	}
 	wrapperParams := entity.CreateOrderParams{
 		UserID: 9919,
-		BookID: 123,
-		Amount: 10,
+		Details: []entity.BookAmount{
+			{
+				BookID: 123,
+				Amount: 10,
+			},
+		},
+	}
+
+	b, err := json.Marshal(wrapperParams.Details)
+	s.Require().Nil(err)
+
+	querierParams := db.CreateOrderParams{
+		UserID:  9919,
+		Details: b,
 	}
 
 	expectedOrder := &entity.Order{
-		ID:        90,
-		UserID:    9919,
-		Email:     "someone@test.com",
-		BookID:    123,
-		BookName:  "Book A",
-		Amount:    10,
+		ID:     90,
+		UserID: 9919,
+		Details: []entity.BookAmount{
+			{
+				BookID: 123,
+				Amount: 10,
+			},
+		},
 		CreatedAt: now,
 	}
 
-	rowFromDB := &db.Order{
-		ID:     90,
-		UserID: 9919,
-		BookID: 123,
-		Amount: 10,
+	rowFromDB := &db.CreateOrderRow{
+		ID:      90,
+		UserID:  9919,
+		Details: b,
 		CreatedAt: pgtype.Timestamptz{
 			Time:  now,
 			Valid: true,
 		},
-	}
-
-	latestCreatedOrder := &db.FindOrderRow{
-		ID:        rowFromDB.ID,
-		UserID:    rowFromDB.UserID,
-		BookID:    rowFromDB.BookID,
-		Amount:    rowFromDB.Amount,
-		CreatedAt: rowFromDB.CreatedAt,
-		Email:     "someone@test.com",
-		BookName:  "Book A",
 	}
 
 	s.Run("create order got querier error", func() {
@@ -283,39 +282,9 @@ func (s *WrapperTestSuite) TestCreateOrder() {
 		s.Assert().Contains(goxErr.LogError(), "querier error")
 	})
 
-	s.Run("create order but no book found", func() {
-		s.querierRepo.EXPECT().CreateOrder(ctx, querierParams).
-			Return(nil, errors.New("violates foreign key constraint \"fk_order_books\"")).Times(1)
-
-		result, err := wrapper.CreateOrder(ctx, wrapperParams)
-		s.Assert().Nil(result)
-
-		goxErr, ok := errorx.Parse(err)
-		s.Require().True(ok)
-		s.Assert().EqualError(goxErr, "book cannot be found")
-		s.Assert().Contains(goxErr.LogError(), "[common.not_found] book cannot be found: violates foreign key constraint \"fk_order_books\"")
-	})
-
-	s.Run("create order error when getting last created order", func() {
-		s.querierRepo.EXPECT().CreateOrder(ctx, querierParams).
-			Return(rowFromDB, nil).Times(1)
-		s.querierRepo.EXPECT().FindOrder(ctx, rowFromDB.ID).
-			Return(nil, errors.New("find order error")).Times(1)
-
-		result, err := wrapper.CreateOrder(ctx, wrapperParams)
-		s.Assert().Nil(result)
-
-		goxErr, ok := errorx.Parse(err)
-		s.Require().True(ok)
-		s.Assert().EqualError(goxErr, "internal server error")
-		s.Assert().Contains(goxErr.LogError(), "[common.internal] internal server error: find order error")
-	})
-
 	s.Run("create order successful", func() {
 		s.querierRepo.EXPECT().CreateOrder(ctx, querierParams).
 			Return(rowFromDB, nil).Times(1)
-		s.querierRepo.EXPECT().FindOrder(ctx, rowFromDB.ID).
-			Return(latestCreatedOrder, nil).Times(1)
 
 		result, err := wrapper.CreateOrder(ctx, wrapperParams)
 		s.Assert().Equal(expectedOrder, result)
@@ -329,49 +298,56 @@ func (s *WrapperTestSuite) TestGetMyOrders() {
 	wrapper := repository.NewDbWrapperRepo(s.querierRepo)
 	expectedOrders := []entity.Order{
 		{
-			ID:        123,
-			UserID:    9919,
-			Email:     "someone@test.com",
-			BookID:    920,
-			BookName:  "Book A",
-			Amount:    10,
-			CreatedAt: now,
-		},
-		{
-			ID:        124,
-			UserID:    9919,
-			Email:     "someone@test.com",
-			BookID:    921,
-			BookName:  "Book B",
-			Amount:    20,
-			CreatedAt: now,
-		},
-	}
-
-	rowsFromDB := []*db.GetMyOrdersRow{
-		{
 			ID:     123,
 			UserID: 9919,
-			BookID: 920,
-			Amount: 10,
-			CreatedAt: pgtype.Timestamptz{
-				Time:  now,
-				Valid: true,
+			Email:  "someone@test.com",
+			Details: []entity.BookAmount{
+				{
+					BookID: 920,
+					Amount: 10,
+				},
 			},
-			Email:    "someone@test.com",
-			BookName: "Book A",
+			CreatedAt: now,
 		},
 		{
 			ID:     124,
 			UserID: 9919,
-			BookID: 921,
-			Amount: 20,
+			Email:  "someone@test.com",
+			Details: []entity.BookAmount{
+				{
+					BookID: 920,
+					Amount: 20,
+				},
+			},
+			CreatedAt: now,
+		},
+	}
+
+	b1, err := json.Marshal(expectedOrders[0].Details)
+	s.Require().Nil(err)
+	b2, err := json.Marshal(expectedOrders[1].Details)
+	s.Require().Nil(err)
+
+	rowsFromDB := []*db.GetMyOrdersRow{
+		{
+			ID:      123,
+			UserID:  9919,
+			Details: b1,
 			CreatedAt: pgtype.Timestamptz{
 				Time:  now,
 				Valid: true,
 			},
-			Email:    "someone@test.com",
-			BookName: "Book B",
+			Email: "someone@test.com",
+		},
+		{
+			ID:      124,
+			UserID:  9919,
+			Details: b2,
+			CreatedAt: pgtype.Timestamptz{
+				Time:  now,
+				Valid: true,
+			},
+			Email: "someone@test.com",
 		},
 	}
 

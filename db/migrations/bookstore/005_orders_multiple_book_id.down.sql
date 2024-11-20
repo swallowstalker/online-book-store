@@ -1,0 +1,5 @@
+BEGIN;
+
+ALTER TABLE orders DROP COLUMN details;
+
+COMMIT;

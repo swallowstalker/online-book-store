@@ -255,7 +255,7 @@ func (s *HandlerTestSuite) TestCreateOrder() {
 
 	s.Run("context has no user id", func() {
 		ctx := context.WithValue(context.Background(), entity.UserContextKey{}, 0)
-		requestBody := `{"book_id":99,"amount":10}`
+		requestBody := `{"details":[{"book_id":99,"amount":10}]}`
 
 		r := httptest.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/orders", strings.NewReader(requestBody))
 		w := httptest.NewRecorder()
@@ -276,11 +276,15 @@ func (s *HandlerTestSuite) TestCreateOrder() {
 
 	s.Run("service error", func() {
 		ctx := context.WithValue(context.Background(), entity.UserContextKey{}, int64(123))
-		requestBody := `{"book_id":99,"amount":10}`
+		requestBody := `{"details":[{"book_id":99,"amount":10}]}`
 		params := entity.CreateOrderParams{
 			UserID: 123,
-			BookID: 99,
-			Amount: 10,
+			Details: []entity.BookAmount{
+				{
+					BookID: 99,
+					Amount: 10,
+				},
+			},
 		}
 
 		s.orderSvc.EXPECT().CreateOrder(ctx, params).
@@ -305,21 +309,28 @@ func (s *HandlerTestSuite) TestCreateOrder() {
 
 	s.Run("successful", func() {
 		ctx := context.WithValue(context.Background(), entity.UserContextKey{}, int64(123))
-		requestBody := `{"book_id":99,"amount":10}`
+		requestBody := `{"details":[{"book_id":99,"amount":10}]}`
 
 		expectedOrder := entity.Order{
-			ID:        1,
-			UserID:    123,
-			Email:     "",
-			BookID:    99,
-			BookName:  "",
-			Amount:    10,
+			ID:     1,
+			UserID: 123,
+			Email:  "",
+			Details: []entity.BookAmount{
+				{
+					BookID: 99,
+					Amount: 10,
+				},
+			},
 			CreatedAt: now,
 		}
 		params := entity.CreateOrderParams{
 			UserID: 123,
-			BookID: 99,
-			Amount: 10,
+			Details: []entity.BookAmount{
+				{
+					BookID: 99,
+					Amount: 10,
+				},
+			},
 		}
 
 		s.orderSvc.EXPECT().CreateOrder(ctx, params).
@@ -449,21 +460,27 @@ func (s *HandlerTestSuite) TestGetMyOrders() {
 
 		expectedBooks := []entity.Order{
 			{
-				ID:        1,
-				UserID:    99,
-				Email:     "someone@test.com",
-				BookID:    1,
-				BookName:  "Book A",
-				Amount:    20,
+				ID:     1,
+				UserID: 99,
+				Email:  "someone@test.com",
+				Details: []entity.BookAmount{
+					{
+						BookID: 1,
+						Amount: 20,
+					},
+				},
 				CreatedAt: now,
 			},
 			{
-				ID:        2,
-				UserID:    99,
-				Email:     "someone@test.com",
-				BookID:    2,
-				BookName:  "Book B",
-				Amount:    10,
+				ID:     2,
+				UserID: 99,
+				Email:  "someone@test.com",
+				Details: []entity.BookAmount{
+					{
+						BookID: 2,
+						Amount: 10,
+					},
+				},
 				CreatedAt: now,
 			},
 		}

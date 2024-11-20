@@ -9,6 +9,17 @@ import (
 	"context"
 )
 
+const findBook = `-- name: FindBook :one
+SELECT id, name, created_at FROM "books" WHERE "id" = $1
+`
+
+func (q *Queries) FindBook(ctx context.Context, id int64) (*Book, error) {
+	row := q.db.QueryRow(ctx, findBook, id)
+	var i Book
+	err := row.Scan(&i.ID, &i.Name, &i.CreatedAt)
+	return &i, err
+}
+
 const getBooks = `-- name: GetBooks :many
 SELECT id, name, created_at FROM "books" LIMIT $1 OFFSET $2
 `

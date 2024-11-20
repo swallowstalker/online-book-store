@@ -1,0 +1,12 @@
+BEGIN;
+
+ALTER TABLE orders
+    ADD COLUMN details JSONB,
+    ALTER COLUMN book_id DROP NOT NULL,
+    ALTER COLUMN book_id TYPE BIGINT,
+    ALTER COLUMN amount DROP NOT NULL,
+    ALTER COLUMN amount TYPE BIGINT;
+
+ALTER TABLE orders DROP CONSTRAINT fk_order_books;
+
+COMMIT;

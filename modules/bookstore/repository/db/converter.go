@@ -1,6 +1,8 @@
 package db
 
 import (
+	"encoding/json"
+
 	"github.com/swallowstalker/online-book-store/modules/bookstore/entity"
 )
 
@@ -18,14 +20,31 @@ func (u *User) ToEntity() *entity.User {
 	}
 }
 
-func (o *FindOrderRow) ToEntity() *entity.Order {
+func (o *CreateOrderRow) ToEntity() *entity.Order {
+	details := []entity.BookAmount{}
+	err := json.Unmarshal(o.Details, &details)
+	if err != nil {
+		details = []entity.BookAmount{}
+	}
 	return &entity.Order{
 		ID:        o.ID,
 		UserID:    o.UserID,
-		Email:     o.Email,
-		BookID:    o.BookID,
-		BookName:  o.BookName,
-		Amount:    o.Amount,
+		Details:   details,
 		CreatedAt: o.CreatedAt.Time,
+	}
+}
+
+func (o *GetMyOrdersRow) ToEntity() *entity.Order {
+	details := []entity.BookAmount{}
+	err := json.Unmarshal(o.Details, &details)
+	if err != nil {
+		details = []entity.BookAmount{}
+	}
+	return &entity.Order{
+		ID:        o.ID,
+		UserID:    o.UserID,
+		Details:   details,
+		CreatedAt: o.CreatedAt.Time,
+		Email:     o.Email,
 	}
 }
