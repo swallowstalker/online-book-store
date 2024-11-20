@@ -34,5 +34,15 @@ func (s *OrderService) CreateOrder(ctx context.Context, params entity.CreateOrde
 		return nil, errorx.ErrInvalidParameter("Input is invalid")
 	}
 
+	for _, d := range params.Details {
+		if err := s.validator.Struct(d); err != nil {
+			return nil, errorx.ErrInvalidParameter("Input is invalid")
+		}
+
+		if _, err := s.repo.FindBook(ctx, d.BookID); err != nil {
+			return nil, err
+		}
+	}
+
 	return s.repo.CreateOrder(ctx, params)
 }

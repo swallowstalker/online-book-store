@@ -9,8 +9,9 @@ import (
 )
 
 type Querier interface {
-	CreateOrder(ctx context.Context, arg CreateOrderParams) (*Order, error)
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (*CreateOrderRow, error)
 	CreateUser(ctx context.Context, email string) (*User, error)
+	FindBook(ctx context.Context, id int64) (*Book, error)
 	FindOrder(ctx context.Context, id int64) (*FindOrderRow, error)
 	FindUser(ctx context.Context, email string) (*User, error)
 	GetBooks(ctx context.Context, arg GetBooksParams) ([]*Book, error)

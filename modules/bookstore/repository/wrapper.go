@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
-	"strings"
 
 	"github.com/raymondwongso/gogox/errorx"
 
@@ -71,24 +71,21 @@ func (w *DbWrapperRepo) GetBooks(ctx context.Context, arg entity.GetBooksParams)
 }
 
 func (w *DbWrapperRepo) CreateOrder(ctx context.Context, arg entity.CreateOrderParams) (*entity.Order, error) {
+	b, err := json.Marshal(arg.Details)
+	if err != nil {
+		return nil, errorx.Wrap(err, errorx.CodeInternal, "internal server error")
+	}
+
 	result, err := w.db.CreateOrder(ctx, db.CreateOrderParams{
-		UserID: arg.UserID,
-		BookID: arg.BookID,
-		Amount: arg.Amount,
+		UserID:  arg.UserID,
+		Details: b,
 	})
-	if err != nil {
-		if strings.Contains(err.Error(), "violates foreign key constraint \"fk_order_books\"") {
-			return nil, errorx.Wrap(err, errorx.CodeNotFound, "book cannot be found")
-		}
-		return nil, errorx.Wrap(err, errorx.CodeInternal, "internal server error")
-	}
 
-	order, err := w.db.FindOrder(ctx, result.ID)
 	if err != nil {
 		return nil, errorx.Wrap(err, errorx.CodeInternal, "internal server error")
 	}
 
-	return order.ToEntity(), nil
+	return result.ToEntity(), nil
 }
 
 func (w *DbWrapperRepo) GetMyOrders(ctx context.Context, arg entity.GetMyOrdersParams) ([]entity.Order, error) {
@@ -103,17 +100,21 @@ func (w *DbWrapperRepo) GetMyOrders(ctx context.Context, arg entity.GetMyOrdersP
 
 	resp := []entity.Order{}
 	for _, r := range result {
-		b := entity.Order{
-			ID:        r.ID,
-			UserID:    r.UserID,
-			Email:     r.Email,
-			BookID:    r.BookID,
-			BookName:  r.BookName,
-			Amount:    r.Amount,
-			CreatedAt: r.CreatedAt.Time,
-		}
-		resp = append(resp, b)
+		o := r.ToEntity()
+		resp = append(resp, *o)
 	}
 
 	return resp, nil
+}
+
+func (w *DbWrapperRepo) FindBook(ctx context.Context, id int64) (*entity.Book, error) {
+	result, err := w.db.FindBook(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errorx.Wrap(err, errorx.CodeNotFound, "book cannot be found")
+		}
+		return nil, errorx.Wrap(err, errorx.CodeInternal, "internal server error")
+	}
+
+	return result.ToEntity(), err
 }

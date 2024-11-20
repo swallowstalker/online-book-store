@@ -17,9 +17,10 @@ type Book struct {
 type Order struct {
 	ID        int64              `db:"id"`
 	UserID    int64              `db:"user_id"`
-	BookID    int64              `db:"book_id"`
-	Amount    int64              `db:"amount"`
+	BookID    pgtype.Int8        `db:"book_id"`
+	Amount    pgtype.Int8        `db:"amount"`
 	CreatedAt pgtype.Timestamptz `db:"created_at"`
+	Details   []byte             `db:"details"`
 }
 
 type User struct {
