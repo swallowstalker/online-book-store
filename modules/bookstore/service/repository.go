@@ -16,6 +16,7 @@ type BookRepository interface {
 
 type OrderRepository interface {
 	CreateOrder(ctx context.Context, arg entity.CreateOrderParams) (*entity.Order, error)
+	CreateOrderItem(ctx context.Context, params entity.CreateOrderItemParams) (*entity.OrderItem, error)
 	GetMyOrders(ctx context.Context, arg entity.GetMyOrdersParams) ([]entity.Order, error)
 	FindBook(ctx context.Context, id int64) (*entity.Book, error)
 }

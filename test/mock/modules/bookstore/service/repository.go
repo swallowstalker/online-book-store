@@ -126,6 +126,21 @@ func (mr *MockOrderRepositoryMockRecorder) CreateOrder(ctx, arg interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrder", reflect.TypeOf((*MockOrderRepository)(nil).CreateOrder), ctx, arg)
 }
 
+// CreateOrderItem mocks base method.
+func (m *MockOrderRepository) CreateOrderItem(ctx context.Context, params entity.CreateOrderItemParams) (*entity.OrderItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateOrderItem", ctx, params)
+	ret0, _ := ret[0].(*entity.OrderItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateOrderItem indicates an expected call of CreateOrderItem.
+func (mr *MockOrderRepositoryMockRecorder) CreateOrderItem(ctx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrderItem", reflect.TypeOf((*MockOrderRepository)(nil).CreateOrderItem), ctx, params)
+}
+
 // FindBook mocks base method.
 func (m *MockOrderRepository) FindBook(ctx context.Context, id int64) (*entity.Book, error) {
 	m.ctrl.T.Helper()

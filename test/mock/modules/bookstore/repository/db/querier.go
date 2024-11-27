@@ -37,18 +37,33 @@ func (m *MockQuerier) EXPECT() *MockQuerierMockRecorder {
 }
 
 // CreateOrder mocks base method.
-func (m *MockQuerier) CreateOrder(ctx context.Context, arg db.CreateOrderParams) (*db.CreateOrderRow, error) {
+func (m *MockQuerier) CreateOrder(ctx context.Context, userID int64) (*db.CreateOrderRow, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateOrder", ctx, arg)
+	ret := m.ctrl.Call(m, "CreateOrder", ctx, userID)
 	ret0, _ := ret[0].(*db.CreateOrderRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateOrder indicates an expected call of CreateOrder.
-func (mr *MockQuerierMockRecorder) CreateOrder(ctx, arg interface{}) *gomock.Call {
+func (mr *MockQuerierMockRecorder) CreateOrder(ctx, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrder", reflect.TypeOf((*MockQuerier)(nil).CreateOrder), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrder", reflect.TypeOf((*MockQuerier)(nil).CreateOrder), ctx, userID)
+}
+
+// CreateOrderItem mocks base method.
+func (m *MockQuerier) CreateOrderItem(ctx context.Context, arg db.CreateOrderItemParams) (*db.OrderItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateOrderItem", ctx, arg)
+	ret0, _ := ret[0].(*db.OrderItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateOrderItem indicates an expected call of CreateOrderItem.
+func (mr *MockQuerierMockRecorder) CreateOrderItem(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrderItem", reflect.TypeOf((*MockQuerier)(nil).CreateOrderItem), ctx, arg)
 }
 
 // CreateUser mocks base method.

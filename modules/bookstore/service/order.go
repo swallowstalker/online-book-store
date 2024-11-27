@@ -34,7 +34,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, params entity.CreateOrde
 		return nil, errorx.ErrInvalidParameter("Input is invalid")
 	}
 
-	for _, d := range params.Details {
+	for _, d := range params.Items {
 		if err := s.validator.Struct(d); err != nil {
 			return nil, errorx.ErrInvalidParameter("Input is invalid")
 		}
@@ -44,5 +44,24 @@ func (s *OrderService) CreateOrder(ctx context.Context, params entity.CreateOrde
 		}
 	}
 
-	return s.repo.CreateOrder(ctx, params)
+	order, err := s.repo.CreateOrder(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, itemInParam := range params.Items {
+		var item *entity.OrderItem
+		item, err = s.repo.CreateOrderItem(ctx, entity.CreateOrderItemParams{
+			OrderID: order.ID,
+			BookID:  itemInParam.BookID,
+			Amount:  itemInParam.Amount,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		order.Items = append(order.Items, *item)
+	}
+
+	return order, nil
 }

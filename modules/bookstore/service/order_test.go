@@ -46,7 +46,7 @@ func (s *OrderServiceTestSuite) TestGetOrders() {
 			ID:     1,
 			UserID: 123,
 			Email:  "someone@test.com",
-			Details: []entity.BookAmount{
+			Items: []entity.OrderItem{
 				{
 					BookID: 99,
 					Amount: 1,
@@ -86,7 +86,7 @@ func (s *OrderServiceTestSuite) TestGetOrders() {
 
 		result, err := svc.GetOrders(ctx, svcParams)
 		s.Assert().Nil(err)
-		s.Assert().Equal(int64(99), result[0].Details[0].BookID)
+		s.Assert().Equal(int64(99), result[0].Items[0].BookID)
 	})
 }
 
@@ -97,7 +97,7 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 
 	svcParams := entity.CreateOrderParams{
 		UserID: 123,
-		Details: []entity.BookAmount{
+		Items: []entity.CreateOrderItemParams{
 			{
 				BookID: 99,
 				Amount: 1,
@@ -106,13 +106,37 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	}
 
 	rowFromDB := &entity.Order{
+		ID:        1,
+		UserID:    123,
+		Email:     "someone@test.com",
+		CreatedAt: now,
+	}
+
+	itemParams := entity.CreateOrderItemParams{
+		OrderID: rowFromDB.ID,
+		BookID:  svcParams.Items[0].BookID,
+		Amount:  svcParams.Items[0].Amount,
+	}
+
+	rowOrderItemFromDB := &entity.OrderItem{
+		ID:        29,
+		OrderID:   rowFromDB.ID,
+		BookID:    svcParams.Items[0].BookID,
+		Amount:    svcParams.Items[0].Amount,
+		CreatedAt: now,
+	}
+
+	expectedOrder := &entity.Order{
 		ID:     1,
 		UserID: 123,
 		Email:  "someone@test.com",
-		Details: []entity.BookAmount{
+		Items: []entity.OrderItem{
 			{
-				BookID: 99,
-				Amount: 1,
+				ID:        29,
+				OrderID:   rowFromDB.ID,
+				BookID:    svcParams.Items[0].BookID,
+				Amount:    svcParams.Items[0].Amount,
+				CreatedAt: now,
 			},
 		},
 		CreatedAt: now,
@@ -121,7 +145,7 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	s.Run("create order validation error", func() {
 		svcParams := entity.CreateOrderParams{
 			UserID: 0,
-			Details: []entity.BookAmount{
+			Items: []entity.CreateOrderItemParams{
 				{
 					BookID: 0,
 					Amount: 0,
@@ -140,7 +164,7 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	s.Run("create order details struct validation error", func() {
 		svcParams := entity.CreateOrderParams{
 			UserID: 1,
-			Details: []entity.BookAmount{
+			Items: []entity.CreateOrderItemParams{
 				{
 					BookID: 0,
 					Amount: 0,
@@ -157,7 +181,7 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	})
 
 	s.Run("create order fail to find book", func() {
-		s.repo.EXPECT().FindBook(ctx, svcParams.Details[0].BookID).
+		s.repo.EXPECT().FindBook(ctx, svcParams.Items[0].BookID).
 			Return(nil, errorx.ErrNotFound("book not found")).Times(1)
 
 		result, err := svc.CreateOrder(ctx, svcParams)
@@ -169,9 +193,22 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	})
 
 	s.Run("create order repo error", func() {
-		s.repo.EXPECT().FindBook(ctx, svcParams.Details[0].BookID).
+		s.repo.EXPECT().FindBook(ctx, svcParams.Items[0].BookID).
 			Return(&entity.Book{}, nil).Times(1)
 		s.repo.EXPECT().CreateOrder(ctx, svcParams).
+			Return(nil, errors.New("repo error")).Times(1)
+
+		result, err := svc.CreateOrder(ctx, svcParams)
+		s.Assert().Nil(result)
+		s.Assert().Contains(err.Error(), "repo error")
+	})
+
+	s.Run("create order item repo error", func() {
+		s.repo.EXPECT().FindBook(ctx, svcParams.Items[0].BookID).
+			Return(&entity.Book{}, nil).Times(1)
+		s.repo.EXPECT().CreateOrder(ctx, svcParams).
+			Return(rowFromDB, nil).Times(1)
+		s.repo.EXPECT().CreateOrderItem(ctx, itemParams).
 			Return(nil, errors.New("repo error")).Times(1)
 
 		result, err := svc.CreateOrder(ctx, svcParams)
@@ -182,11 +219,13 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	s.Run("create order success", func() {
 		s.repo.EXPECT().CreateOrder(ctx, svcParams).
 			Return(rowFromDB, nil).Times(1)
-		s.repo.EXPECT().FindBook(ctx, svcParams.Details[0].BookID).
+		s.repo.EXPECT().CreateOrderItem(ctx, itemParams).
+			Return(rowOrderItemFromDB, nil).Times(1)
+		s.repo.EXPECT().FindBook(ctx, svcParams.Items[0].BookID).
 			Return(&entity.Book{}, nil).Times(1)
 
 		result, err := svc.CreateOrder(ctx, svcParams)
 		s.Assert().Nil(err)
-		s.Assert().Equal(int64(99), result.Details[0].BookID)
+		s.Assert().Equal(expectedOrder, result)
 	})
 }

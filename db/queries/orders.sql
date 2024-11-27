@@ -1,5 +1,5 @@
 -- name: CreateOrder :one
-INSERT INTO "orders" ("user_id", "details", "created_at") VALUES ($1, $2, NOW()) RETURNING id, user_id, details, created_at;
+INSERT INTO "orders" ("user_id", "created_at") VALUES ($1, NOW()) RETURNING id, user_id, created_at;
 
 -- name: FindOrder :one
 SELECT o.*, u.email as email, b.name as book_name
@@ -9,7 +9,8 @@ FROM "orders" o
 WHERE o.id = $1;
 
 -- name: GetMyOrders :many
-SELECT o.*, u.email as email
+SELECT o.id as order_id, o.user_id, oi.book_id, oi.amount, u.email as email, o.created_at, oi.id as item_id, oi.created_at as item_created_at
 FROM "orders" o
+JOIN "order_items" oi ON oi.order_id = o.id
 JOIN "users" u ON o.user_id = u.id
 WHERE o.user_id = $1 LIMIT $2 OFFSET $3;

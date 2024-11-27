@@ -3,7 +3,6 @@ package repository_test
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -228,41 +227,27 @@ func (s *WrapperTestSuite) TestCreateOrder() {
 	ctx := context.Background()
 	now := time.Now()
 	wrapper := repository.NewDbWrapperRepo(s.querierRepo)
+	userID := int64(9919)
 
 	wrapperParams := entity.CreateOrderParams{
-		UserID: 9919,
-		Details: []entity.BookAmount{
+		UserID: userID,
+		Items: []entity.CreateOrderItemParams{
 			{
 				BookID: 123,
 				Amount: 10,
 			},
 		},
-	}
-
-	b, err := json.Marshal(wrapperParams.Details)
-	s.Require().Nil(err)
-
-	querierParams := db.CreateOrderParams{
-		UserID:  9919,
-		Details: b,
 	}
 
 	expectedOrder := &entity.Order{
-		ID:     90,
-		UserID: 9919,
-		Details: []entity.BookAmount{
-			{
-				BookID: 123,
-				Amount: 10,
-			},
-		},
+		ID:        90,
+		UserID:    9919,
 		CreatedAt: now,
 	}
 
 	rowFromDB := &db.CreateOrderRow{
-		ID:      90,
-		UserID:  9919,
-		Details: b,
+		ID:     90,
+		UserID: 9919,
 		CreatedAt: pgtype.Timestamptz{
 			Time:  now,
 			Valid: true,
@@ -270,7 +255,7 @@ func (s *WrapperTestSuite) TestCreateOrder() {
 	}
 
 	s.Run("create order got querier error", func() {
-		s.querierRepo.EXPECT().CreateOrder(ctx, querierParams).
+		s.querierRepo.EXPECT().CreateOrder(ctx, userID).
 			Return(nil, errors.New("querier error")).Times(1)
 
 		result, err := wrapper.CreateOrder(ctx, wrapperParams)
@@ -283,7 +268,7 @@ func (s *WrapperTestSuite) TestCreateOrder() {
 	})
 
 	s.Run("create order successful", func() {
-		s.querierRepo.EXPECT().CreateOrder(ctx, querierParams).
+		s.querierRepo.EXPECT().CreateOrder(ctx, userID).
 			Return(rowFromDB, nil).Times(1)
 
 		result, err := wrapper.CreateOrder(ctx, wrapperParams)
@@ -301,10 +286,13 @@ func (s *WrapperTestSuite) TestGetMyOrders() {
 			ID:     123,
 			UserID: 9919,
 			Email:  "someone@test.com",
-			Details: []entity.BookAmount{
+			Items: []entity.OrderItem{
 				{
-					BookID: 920,
-					Amount: 10,
+					ID:        984,
+					OrderID:   123,
+					BookID:    920,
+					Amount:    10,
+					CreatedAt: now,
 				},
 			},
 			CreatedAt: now,
@@ -313,41 +301,51 @@ func (s *WrapperTestSuite) TestGetMyOrders() {
 			ID:     124,
 			UserID: 9919,
 			Email:  "someone@test.com",
-			Details: []entity.BookAmount{
+			Items: []entity.OrderItem{
 				{
-					BookID: 920,
-					Amount: 20,
+					ID:        985,
+					OrderID:   124,
+					BookID:    920,
+					Amount:    20,
+					CreatedAt: now,
 				},
 			},
 			CreatedAt: now,
 		},
 	}
 
-	b1, err := json.Marshal(expectedOrders[0].Details)
-	s.Require().Nil(err)
-	b2, err := json.Marshal(expectedOrders[1].Details)
-	s.Require().Nil(err)
-
 	rowsFromDB := []*db.GetMyOrdersRow{
 		{
-			ID:      123,
+			OrderID: 123,
 			UserID:  9919,
-			Details: b1,
+			BookID:  920,
+			Amount:  10,
+			Email:   "someone@test.com",
 			CreatedAt: pgtype.Timestamptz{
 				Time:  now,
 				Valid: true,
 			},
-			Email: "someone@test.com",
+			ItemID: 984,
+			ItemCreatedAt: pgtype.Timestamptz{
+				Time:  now,
+				Valid: true,
+			},
 		},
 		{
-			ID:      124,
+			OrderID: 124,
 			UserID:  9919,
-			Details: b2,
+			BookID:  920,
+			Amount:  20,
+			Email:   "someone@test.com",
 			CreatedAt: pgtype.Timestamptz{
 				Time:  now,
 				Valid: true,
 			},
-			Email: "someone@test.com",
+			ItemID: 985,
+			ItemCreatedAt: pgtype.Timestamptz{
+				Time:  now,
+				Valid: true,
+			},
 		},
 	}
 
@@ -382,6 +380,65 @@ func (s *WrapperTestSuite) TestGetMyOrders() {
 
 		result, err := wrapper.GetMyOrders(ctx, wrapperParams)
 		s.Assert().Equal(expectedOrders, result)
+		s.Assert().Nil(err)
+	})
+}
+
+func (s *WrapperTestSuite) TestCreateOrderItem() {
+	ctx := context.Background()
+	now := time.Now()
+	wrapper := repository.NewDbWrapperRepo(s.querierRepo)
+
+	querierParams := db.CreateOrderItemParams{
+		OrderID: 847,
+		BookID:  27,
+		Amount:  19,
+	}
+
+	wrapperParams := entity.CreateOrderItemParams{
+		OrderID: 847,
+		BookID:  27,
+		Amount:  19,
+	}
+
+	expectedOrderItem := &entity.OrderItem{
+		ID:        90,
+		OrderID:   847,
+		BookID:    27,
+		Amount:    19,
+		CreatedAt: now,
+	}
+
+	rowFromDB := &db.OrderItem{
+		ID:      90,
+		OrderID: 847,
+		BookID:  27,
+		Amount:  19,
+		CreatedAt: pgtype.Timestamptz{
+			Time:  now,
+			Valid: true,
+		},
+	}
+
+	s.Run("create order item got querier error", func() {
+		s.querierRepo.EXPECT().CreateOrderItem(ctx, querierParams).
+			Return(nil, errors.New("querier error")).Times(1)
+
+		result, err := wrapper.CreateOrderItem(ctx, wrapperParams)
+		s.Assert().Nil(result)
+
+		goxErr, ok := errorx.Parse(err)
+		s.Require().True(ok)
+		s.Assert().EqualError(goxErr, "internal server error")
+		s.Assert().Contains(goxErr.LogError(), "querier error")
+	})
+
+	s.Run("create order item successful", func() {
+		s.querierRepo.EXPECT().CreateOrderItem(ctx, querierParams).
+			Return(rowFromDB, nil).Times(1)
+
+		result, err := wrapper.CreateOrderItem(ctx, wrapperParams)
+		s.Assert().Equal(expectedOrderItem, result)
 		s.Assert().Nil(err)
 	})
 }

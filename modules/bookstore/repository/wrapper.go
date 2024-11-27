@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
+	"slices"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/raymondwongso/gogox/errorx"
@@ -72,15 +72,7 @@ func (w *DbWrapperRepo) GetBooks(ctx context.Context, arg entity.GetBooksParams)
 }
 
 func (w *DbWrapperRepo) CreateOrder(ctx context.Context, arg entity.CreateOrderParams) (*entity.Order, error) {
-	b, err := json.Marshal(arg.Details)
-	if err != nil {
-		return nil, errorx.Wrap(err, errorx.CodeInternal, "internal server error")
-	}
-
-	result, err := w.db.CreateOrder(ctx, db.CreateOrderParams{
-		UserID:  arg.UserID,
-		Details: b,
-	})
+	result, err := w.db.CreateOrder(ctx, arg.UserID)
 
 	if err != nil {
 		return nil, errorx.Wrap(err, errorx.CodeInternal, "internal server error")
@@ -100,10 +92,43 @@ func (w *DbWrapperRepo) GetMyOrders(ctx context.Context, arg entity.GetMyOrdersP
 	}
 
 	resp := []entity.Order{}
+	orders := map[int64]entity.Order{}
+
 	for _, r := range result {
-		o := r.ToEntity()
-		resp = append(resp, *o)
+		var order entity.Order
+		var exist bool
+		if order, exist = orders[r.OrderID]; !exist {
+			order = entity.Order{
+				ID:        r.OrderID,
+				UserID:    r.UserID,
+				Email:     r.Email,
+				Items:     []entity.OrderItem{},
+				CreatedAt: r.CreatedAt.Time,
+			}
+			orders[r.OrderID] = order
+		}
+
+		order.Items = append(order.Items, entity.OrderItem{
+			ID:        r.ItemID,
+			OrderID:   r.OrderID,
+			BookID:    r.BookID,
+			Amount:    r.Amount,
+			CreatedAt: r.ItemCreatedAt.Time,
+		})
+
+		orders[r.OrderID] = order
 	}
+
+	for _, o := range orders {
+		resp = append(resp, o)
+	}
+
+	slices.SortFunc(resp, func(a, b entity.Order) int {
+		if a.CreatedAt.After(b.CreatedAt) {
+			return -1
+		}
+		return 1
+	})
 
 	return resp, nil
 }
@@ -129,6 +154,19 @@ func (w *DbWrapperRepo) FindUserByToken(ctx context.Context, token string) (*ent
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
+		return nil, errorx.Wrap(err, errorx.CodeInternal, "internal server error")
+	}
+
+	return result.ToEntity(), nil
+}
+
+func (w *DbWrapperRepo) CreateOrderItem(ctx context.Context, params entity.CreateOrderItemParams) (*entity.OrderItem, error) {
+	result, err := w.db.CreateOrderItem(ctx, db.CreateOrderItemParams{
+		OrderID: params.OrderID,
+		BookID:  params.BookID,
+		Amount:  params.Amount,
+	})
+	if err != nil {
 		return nil, errorx.Wrap(err, errorx.CodeInternal, "internal server error")
 	}
 
