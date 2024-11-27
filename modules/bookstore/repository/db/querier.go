@@ -18,6 +18,7 @@ type Querier interface {
 	FindUser(ctx context.Context, email string) (*User, error)
 	FindUserByToken(ctx context.Context, token pgtype.Text) (*User, error)
 	GetBooks(ctx context.Context, arg GetBooksParams) ([]*Book, error)
+	GetMyOrderItems(ctx context.Context, orderID int64) ([]*OrderItem, error)
 	GetMyOrders(ctx context.Context, arg GetMyOrdersParams) ([]*GetMyOrdersRow, error)
 }
 

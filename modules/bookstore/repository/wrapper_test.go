@@ -322,15 +322,8 @@ func (s *WrapperTestSuite) TestGetMyOrders() {
 		{
 			OrderID: 123,
 			UserID:  9919,
-			BookID:  920,
-			Amount:  10,
 			Email:   "someone@test.com",
 			CreatedAt: pgtype.Timestamptz{
-				Time:  now,
-				Valid: true,
-			},
-			ItemID: 984,
-			ItemCreatedAt: pgtype.Timestamptz{
 				Time:  now,
 				Valid: true,
 			},
@@ -338,15 +331,34 @@ func (s *WrapperTestSuite) TestGetMyOrders() {
 		{
 			OrderID: 124,
 			UserID:  9919,
-			BookID:  920,
-			Amount:  20,
 			Email:   "someone@test.com",
 			CreatedAt: pgtype.Timestamptz{
 				Time:  now,
 				Valid: true,
 			},
-			ItemID: 985,
-			ItemCreatedAt: pgtype.Timestamptz{
+		},
+	}
+
+	order123ItemRowFromDB := []*db.OrderItem{
+		{
+			ID:      984,
+			OrderID: 123,
+			BookID:  920,
+			Amount:  10,
+			CreatedAt: pgtype.Timestamptz{
+				Time:  now,
+				Valid: true,
+			},
+		},
+	}
+
+	order124ItemRowFromDB := []*db.OrderItem{
+		{
+			ID:      985,
+			OrderID: 124,
+			BookID:  920,
+			Amount:  20,
+			CreatedAt: pgtype.Timestamptz{
 				Time:  now,
 				Valid: true,
 			},
@@ -378,9 +390,29 @@ func (s *WrapperTestSuite) TestGetMyOrders() {
 		s.Assert().Contains(goxErr.LogError(), "[common.internal] internal server error: querier error")
 	})
 
+	s.Run("get my order items got querier error", func() {
+		s.querierRepo.EXPECT().GetMyOrders(ctx, querierParams).
+			Return(rowsFromDB, nil).Times(1)
+		s.querierRepo.EXPECT().GetMyOrderItems(ctx, rowsFromDB[0].OrderID).
+			Return(nil, errors.New("querier error")).Times(1)
+
+		result, err := wrapper.GetMyOrders(ctx, wrapperParams)
+		s.Assert().Nil(result)
+
+		goxErr, ok := errorx.Parse(err)
+		s.Require().True(ok)
+		s.Assert().Equal(errorx.CodeInternal, goxErr.Code)
+		s.Assert().EqualError(goxErr, "internal server error")
+		s.Assert().Contains(goxErr.LogError(), "[common.internal] internal server error: querier error")
+	})
+
 	s.Run("get my orders successful", func() {
 		s.querierRepo.EXPECT().GetMyOrders(ctx, querierParams).
 			Return(rowsFromDB, nil).Times(1)
+		s.querierRepo.EXPECT().GetMyOrderItems(ctx, rowsFromDB[0].OrderID).
+			Return(order123ItemRowFromDB, nil).Times(1)
+		s.querierRepo.EXPECT().GetMyOrderItems(ctx, rowsFromDB[1].OrderID).
+			Return(order124ItemRowFromDB, nil).Times(1)
 
 		result, err := wrapper.GetMyOrders(ctx, wrapperParams)
 		s.Assert().Equal(expectedOrders, result)

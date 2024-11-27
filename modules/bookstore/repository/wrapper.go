@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"slices"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -113,27 +112,18 @@ func (w *DbWrapperRepo) GetMyOrders(ctx context.Context, arg entity.GetMyOrdersP
 			orders[r.OrderID] = order
 		}
 
-		order.Items = append(order.Items, entity.OrderItem{
-			ID:        r.ItemID,
-			OrderID:   r.OrderID,
-			BookID:    r.BookID,
-			Amount:    r.Amount,
-			CreatedAt: r.ItemCreatedAt.Time,
-		})
+		orderItems, err := w.db.GetMyOrderItems(ctx, r.OrderID)
+		if err != nil {
+			return nil, errorx.Wrap(err, errorx.CodeInternal, "internal server error")
+		}
+
+		for _, item := range orderItems {
+			order.Items = append(order.Items, *item.ToEntity())
+		}
 
 		orders[r.OrderID] = order
+		resp = append(resp, order)
 	}
-
-	for _, o := range orders {
-		resp = append(resp, o)
-	}
-
-	slices.SortFunc(resp, func(a, b entity.Order) int {
-		if a.CreatedAt.After(b.CreatedAt) {
-			return -1
-		}
-		return 1
-	})
 
 	return resp, nil
 }

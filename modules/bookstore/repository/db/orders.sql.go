@@ -29,11 +29,10 @@ func (q *Queries) CreateOrder(ctx context.Context, userID int64) (*CreateOrderRo
 }
 
 const getMyOrders = `-- name: GetMyOrders :many
-SELECT o.id as order_id, o.user_id, oi.book_id, oi.amount, u.email as email, o.created_at, oi.id as item_id, oi.created_at as item_created_at
+SELECT o.id as order_id, o.user_id, u.email as email, o.created_at
 FROM "orders" o
-JOIN "order_items" oi ON oi.order_id = o.id
 JOIN "users" u ON o.user_id = u.id
-WHERE o.user_id = $1 LIMIT $2 OFFSET $3
+WHERE o.user_id = $1 ORDER BY o.id DESC LIMIT $2 OFFSET $3
 `
 
 type GetMyOrdersParams struct {
@@ -43,14 +42,10 @@ type GetMyOrdersParams struct {
 }
 
 type GetMyOrdersRow struct {
-	OrderID       int64              `db:"order_id"`
-	UserID        int64              `db:"user_id"`
-	BookID        int64              `db:"book_id"`
-	Amount        int64              `db:"amount"`
-	Email         string             `db:"email"`
-	CreatedAt     pgtype.Timestamptz `db:"created_at"`
-	ItemID        int64              `db:"item_id"`
-	ItemCreatedAt pgtype.Timestamptz `db:"item_created_at"`
+	OrderID   int64              `db:"order_id"`
+	UserID    int64              `db:"user_id"`
+	Email     string             `db:"email"`
+	CreatedAt pgtype.Timestamptz `db:"created_at"`
 }
 
 func (q *Queries) GetMyOrders(ctx context.Context, arg GetMyOrdersParams) ([]*GetMyOrdersRow, error) {
@@ -65,12 +60,8 @@ func (q *Queries) GetMyOrders(ctx context.Context, arg GetMyOrdersParams) ([]*Ge
 		if err := rows.Scan(
 			&i.OrderID,
 			&i.UserID,
-			&i.BookID,
-			&i.Amount,
 			&i.Email,
 			&i.CreatedAt,
-			&i.ItemID,
-			&i.ItemCreatedAt,
 		); err != nil {
 			return nil, err
 		}

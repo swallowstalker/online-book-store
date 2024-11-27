@@ -18,6 +18,7 @@ type QuerierWithTx interface {
 	FindUserByToken(ctx context.Context, token pgtype.Text) (*User, error)
 	GetBooks(ctx context.Context, arg GetBooksParams) ([]*Book, error)
 	GetMyOrders(ctx context.Context, arg GetMyOrdersParams) ([]*GetMyOrdersRow, error)
+	GetMyOrderItems(ctx context.Context, orderID int64) ([]*OrderItem, error)
 	WrapTx(tx pgx.Tx) QuerierWithTx
 }
 

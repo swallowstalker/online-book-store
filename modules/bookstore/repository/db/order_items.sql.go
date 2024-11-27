@@ -31,3 +31,33 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 	)
 	return &i, err
 }
+
+const getMyOrderItems = `-- name: GetMyOrderItems :many
+SELECT id, order_id, book_id, amount, created_at FROM "order_items" WHERE order_id = $1
+`
+
+func (q *Queries) GetMyOrderItems(ctx context.Context, orderID int64) ([]*OrderItem, error) {
+	rows, err := q.db.Query(ctx, getMyOrderItems, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []*OrderItem
+	for rows.Next() {
+		var i OrderItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.BookID,
+			&i.Amount,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, &i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
