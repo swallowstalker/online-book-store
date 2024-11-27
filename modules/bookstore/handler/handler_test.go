@@ -255,7 +255,7 @@ func (s *HandlerTestSuite) TestCreateOrder() {
 
 	s.Run("context has no user id", func() {
 		ctx := context.WithValue(context.Background(), entity.UserContextKey{}, 0)
-		requestBody := `{"details":[{"book_id":99,"amount":10}]}`
+		requestBody := `{"items":[{"book_id":99,"amount":10}]}`
 
 		r := httptest.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/orders", strings.NewReader(requestBody))
 		w := httptest.NewRecorder()
@@ -276,10 +276,10 @@ func (s *HandlerTestSuite) TestCreateOrder() {
 
 	s.Run("service error", func() {
 		ctx := context.WithValue(context.Background(), entity.UserContextKey{}, int64(123))
-		requestBody := `{"details":[{"book_id":99,"amount":10}]}`
+		requestBody := `{"items":[{"book_id":99,"amount":10}]}`
 		params := entity.CreateOrderParams{
 			UserID: 123,
-			Details: []entity.BookAmount{
+			Items: []entity.CreateOrderItemParams{
 				{
 					BookID: 99,
 					Amount: 10,
@@ -309,13 +309,13 @@ func (s *HandlerTestSuite) TestCreateOrder() {
 
 	s.Run("successful", func() {
 		ctx := context.WithValue(context.Background(), entity.UserContextKey{}, int64(123))
-		requestBody := `{"details":[{"book_id":99,"amount":10}]}`
+		requestBody := `{"items":[{"book_id":99,"amount":10}]}`
 
 		expectedOrder := entity.Order{
 			ID:     1,
 			UserID: 123,
 			Email:  "",
-			Details: []entity.BookAmount{
+			Items: []entity.OrderItem{
 				{
 					BookID: 99,
 					Amount: 10,
@@ -325,7 +325,7 @@ func (s *HandlerTestSuite) TestCreateOrder() {
 		}
 		params := entity.CreateOrderParams{
 			UserID: 123,
-			Details: []entity.BookAmount{
+			Items: []entity.CreateOrderItemParams{
 				{
 					BookID: 99,
 					Amount: 10,
@@ -463,7 +463,7 @@ func (s *HandlerTestSuite) TestGetMyOrders() {
 				ID:     1,
 				UserID: 99,
 				Email:  "someone@test.com",
-				Details: []entity.BookAmount{
+				Items: []entity.OrderItem{
 					{
 						BookID: 1,
 						Amount: 20,
@@ -475,7 +475,7 @@ func (s *HandlerTestSuite) TestGetMyOrders() {
 				ID:     2,
 				UserID: 99,
 				Email:  "someone@test.com",
-				Details: []entity.BookAmount{
+				Items: []entity.OrderItem{
 					{
 						BookID: 2,
 						Amount: 10,

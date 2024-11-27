@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joeshaw/envdecode"
 	"github.com/joho/godotenv"
@@ -53,11 +54,15 @@ func main() {
 		panic(err)
 	}
 
+	txFunc := func(ctx context.Context) (pgx.Tx, error) {
+		return pool.Begin(ctx)
+	}
+
 	querier := db.New(pool)
 	repoWrapper := repository.NewDbWrapperRepo(querier)
 	userService := service.NewUserService(repoWrapper)
 	bookService := service.NewBookService(repoWrapper)
-	orderService := service.NewOrderService(repoWrapper)
+	orderService := service.NewOrderService(repoWrapper, txFunc)
 	h := handler.NewHandler(userService, bookService, orderService)
 	m := middleware.NewAuthMiddleware(repoWrapper)
 

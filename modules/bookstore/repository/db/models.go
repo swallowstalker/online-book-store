@@ -23,6 +23,14 @@ type Order struct {
 	Details   []byte             `db:"details"`
 }
 
+type OrderItem struct {
+	ID        int64              `db:"id"`
+	OrderID   int64              `db:"order_id"`
+	BookID    int64              `db:"book_id"`
+	Amount    int64              `db:"amount"`
+	CreatedAt pgtype.Timestamptz `db:"created_at"`
+}
+
 type User struct {
 	ID        int64              `db:"id"`
 	Email     string             `db:"email"`

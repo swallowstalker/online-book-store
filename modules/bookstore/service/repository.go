@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/swallowstalker/online-book-store/modules/bookstore/entity"
 )
 
@@ -15,7 +17,8 @@ type BookRepository interface {
 }
 
 type OrderRepository interface {
-	CreateOrder(ctx context.Context, arg entity.CreateOrderParams) (*entity.Order, error)
+	CreateOrder(ctx context.Context, tx pgx.Tx, arg entity.CreateOrderParams) (*entity.Order, error)
+	CreateOrderItem(ctx context.Context, tx pgx.Tx, params entity.CreateOrderItemParams) (*entity.OrderItem, error)
 	GetMyOrders(ctx context.Context, arg entity.GetMyOrdersParams) ([]entity.Order, error)
-	FindBook(ctx context.Context, id int64) (*entity.Book, error)
+	FindBook(ctx context.Context, tx pgx.Tx, id int64) (*entity.Book, error)
 }

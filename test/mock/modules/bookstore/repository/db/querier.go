@@ -37,18 +37,33 @@ func (m *MockQuerier) EXPECT() *MockQuerierMockRecorder {
 }
 
 // CreateOrder mocks base method.
-func (m *MockQuerier) CreateOrder(ctx context.Context, arg db.CreateOrderParams) (*db.CreateOrderRow, error) {
+func (m *MockQuerier) CreateOrder(ctx context.Context, userID int64) (*db.CreateOrderRow, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateOrder", ctx, arg)
+	ret := m.ctrl.Call(m, "CreateOrder", ctx, userID)
 	ret0, _ := ret[0].(*db.CreateOrderRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateOrder indicates an expected call of CreateOrder.
-func (mr *MockQuerierMockRecorder) CreateOrder(ctx, arg interface{}) *gomock.Call {
+func (mr *MockQuerierMockRecorder) CreateOrder(ctx, userID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrder", reflect.TypeOf((*MockQuerier)(nil).CreateOrder), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrder", reflect.TypeOf((*MockQuerier)(nil).CreateOrder), ctx, userID)
+}
+
+// CreateOrderItem mocks base method.
+func (m *MockQuerier) CreateOrderItem(ctx context.Context, arg db.CreateOrderItemParams) (*db.OrderItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateOrderItem", ctx, arg)
+	ret0, _ := ret[0].(*db.OrderItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateOrderItem indicates an expected call of CreateOrderItem.
+func (mr *MockQuerierMockRecorder) CreateOrderItem(ctx, arg interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrderItem", reflect.TypeOf((*MockQuerier)(nil).CreateOrderItem), ctx, arg)
 }
 
 // CreateUser mocks base method.
@@ -79,21 +94,6 @@ func (m *MockQuerier) FindBook(ctx context.Context, id int64) (*db.Book, error) 
 func (mr *MockQuerierMockRecorder) FindBook(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindBook", reflect.TypeOf((*MockQuerier)(nil).FindBook), ctx, id)
-}
-
-// FindOrder mocks base method.
-func (m *MockQuerier) FindOrder(ctx context.Context, id int64) (*db.FindOrderRow, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindOrder", ctx, id)
-	ret0, _ := ret[0].(*db.FindOrderRow)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindOrder indicates an expected call of FindOrder.
-func (mr *MockQuerierMockRecorder) FindOrder(ctx, id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOrder", reflect.TypeOf((*MockQuerier)(nil).FindOrder), ctx, id)
 }
 
 // FindUser mocks base method.
@@ -139,6 +139,21 @@ func (m *MockQuerier) GetBooks(ctx context.Context, arg db.GetBooksParams) ([]*d
 func (mr *MockQuerierMockRecorder) GetBooks(ctx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBooks", reflect.TypeOf((*MockQuerier)(nil).GetBooks), ctx, arg)
+}
+
+// GetMyOrderItems mocks base method.
+func (m *MockQuerier) GetMyOrderItems(ctx context.Context, orderID int64) ([]*db.OrderItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMyOrderItems", ctx, orderID)
+	ret0, _ := ret[0].([]*db.OrderItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMyOrderItems indicates an expected call of GetMyOrderItems.
+func (mr *MockQuerierMockRecorder) GetMyOrderItems(ctx, orderID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMyOrderItems", reflect.TypeOf((*MockQuerier)(nil).GetMyOrderItems), ctx, orderID)
 }
 
 // GetMyOrders mocks base method.

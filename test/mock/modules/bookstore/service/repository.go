@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	pgx "github.com/jackc/pgx/v5"
 	entity "github.com/swallowstalker/online-book-store/modules/bookstore/entity"
 )
 
@@ -112,33 +113,48 @@ func (m *MockOrderRepository) EXPECT() *MockOrderRepositoryMockRecorder {
 }
 
 // CreateOrder mocks base method.
-func (m *MockOrderRepository) CreateOrder(ctx context.Context, arg entity.CreateOrderParams) (*entity.Order, error) {
+func (m *MockOrderRepository) CreateOrder(ctx context.Context, tx pgx.Tx, arg entity.CreateOrderParams) (*entity.Order, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateOrder", ctx, arg)
+	ret := m.ctrl.Call(m, "CreateOrder", ctx, tx, arg)
 	ret0, _ := ret[0].(*entity.Order)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateOrder indicates an expected call of CreateOrder.
-func (mr *MockOrderRepositoryMockRecorder) CreateOrder(ctx, arg interface{}) *gomock.Call {
+func (mr *MockOrderRepositoryMockRecorder) CreateOrder(ctx, tx, arg interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrder", reflect.TypeOf((*MockOrderRepository)(nil).CreateOrder), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrder", reflect.TypeOf((*MockOrderRepository)(nil).CreateOrder), ctx, tx, arg)
+}
+
+// CreateOrderItem mocks base method.
+func (m *MockOrderRepository) CreateOrderItem(ctx context.Context, tx pgx.Tx, params entity.CreateOrderItemParams) (*entity.OrderItem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateOrderItem", ctx, tx, params)
+	ret0, _ := ret[0].(*entity.OrderItem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateOrderItem indicates an expected call of CreateOrderItem.
+func (mr *MockOrderRepositoryMockRecorder) CreateOrderItem(ctx, tx, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrderItem", reflect.TypeOf((*MockOrderRepository)(nil).CreateOrderItem), ctx, tx, params)
 }
 
 // FindBook mocks base method.
-func (m *MockOrderRepository) FindBook(ctx context.Context, id int64) (*entity.Book, error) {
+func (m *MockOrderRepository) FindBook(ctx context.Context, tx pgx.Tx, id int64) (*entity.Book, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindBook", ctx, id)
+	ret := m.ctrl.Call(m, "FindBook", ctx, tx, id)
 	ret0, _ := ret[0].(*entity.Book)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindBook indicates an expected call of FindBook.
-func (mr *MockOrderRepositoryMockRecorder) FindBook(ctx, id interface{}) *gomock.Call {
+func (mr *MockOrderRepositoryMockRecorder) FindBook(ctx, tx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindBook", reflect.TypeOf((*MockOrderRepository)(nil).FindBook), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindBook", reflect.TypeOf((*MockOrderRepository)(nil).FindBook), ctx, tx, id)
 }
 
 // GetMyOrders mocks base method.

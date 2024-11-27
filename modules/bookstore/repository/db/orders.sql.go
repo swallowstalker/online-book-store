@@ -12,73 +12,27 @@ import (
 )
 
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO "orders" ("user_id", "details", "created_at") VALUES ($1, $2, NOW()) RETURNING id, user_id, details, created_at
+INSERT INTO "orders" ("user_id", "created_at") VALUES ($1, NOW()) RETURNING id, user_id, created_at
 `
-
-type CreateOrderParams struct {
-	UserID  int64  `db:"user_id"`
-	Details []byte `db:"details"`
-}
 
 type CreateOrderRow struct {
 	ID        int64              `db:"id"`
 	UserID    int64              `db:"user_id"`
-	Details   []byte             `db:"details"`
 	CreatedAt pgtype.Timestamptz `db:"created_at"`
 }
 
-func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (*CreateOrderRow, error) {
-	row := q.db.QueryRow(ctx, createOrder, arg.UserID, arg.Details)
+func (q *Queries) CreateOrder(ctx context.Context, userID int64) (*CreateOrderRow, error) {
+	row := q.db.QueryRow(ctx, createOrder, userID)
 	var i CreateOrderRow
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Details,
-		&i.CreatedAt,
-	)
-	return &i, err
-}
-
-const findOrder = `-- name: FindOrder :one
-SELECT o.id, o.user_id, o.book_id, o.amount, o.created_at, o.details, u.email as email, b.name as book_name
-FROM "orders" o
-         JOIN "books" b ON o.book_id = b.id
-         JOIN "users" u ON o.user_id = u.id
-WHERE o.id = $1
-`
-
-type FindOrderRow struct {
-	ID        int64              `db:"id"`
-	UserID    int64              `db:"user_id"`
-	BookID    pgtype.Int8        `db:"book_id"`
-	Amount    pgtype.Int8        `db:"amount"`
-	CreatedAt pgtype.Timestamptz `db:"created_at"`
-	Details   []byte             `db:"details"`
-	Email     string             `db:"email"`
-	BookName  string             `db:"book_name"`
-}
-
-func (q *Queries) FindOrder(ctx context.Context, id int64) (*FindOrderRow, error) {
-	row := q.db.QueryRow(ctx, findOrder, id)
-	var i FindOrderRow
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.BookID,
-		&i.Amount,
-		&i.CreatedAt,
-		&i.Details,
-		&i.Email,
-		&i.BookName,
-	)
+	err := row.Scan(&i.ID, &i.UserID, &i.CreatedAt)
 	return &i, err
 }
 
 const getMyOrders = `-- name: GetMyOrders :many
-SELECT o.id, o.user_id, o.book_id, o.amount, o.created_at, o.details, u.email as email
+SELECT o.id as order_id, o.user_id, u.email as email, o.created_at
 FROM "orders" o
 JOIN "users" u ON o.user_id = u.id
-WHERE o.user_id = $1 LIMIT $2 OFFSET $3
+WHERE o.user_id = $1 ORDER BY o.id DESC LIMIT $2 OFFSET $3
 `
 
 type GetMyOrdersParams struct {
@@ -88,13 +42,10 @@ type GetMyOrdersParams struct {
 }
 
 type GetMyOrdersRow struct {
-	ID        int64              `db:"id"`
+	OrderID   int64              `db:"order_id"`
 	UserID    int64              `db:"user_id"`
-	BookID    pgtype.Int8        `db:"book_id"`
-	Amount    pgtype.Int8        `db:"amount"`
-	CreatedAt pgtype.Timestamptz `db:"created_at"`
-	Details   []byte             `db:"details"`
 	Email     string             `db:"email"`
+	CreatedAt pgtype.Timestamptz `db:"created_at"`
 }
 
 func (q *Queries) GetMyOrders(ctx context.Context, arg GetMyOrdersParams) ([]*GetMyOrdersRow, error) {
@@ -107,13 +58,10 @@ func (q *Queries) GetMyOrders(ctx context.Context, arg GetMyOrdersParams) ([]*Ge
 	for rows.Next() {
 		var i GetMyOrdersRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.OrderID,
 			&i.UserID,
-			&i.BookID,
-			&i.Amount,
-			&i.CreatedAt,
-			&i.Details,
 			&i.Email,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

@@ -7,23 +7,32 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/jackc/pgx/v5"
 	"github.com/raymondwongso/gogox/errorx"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/swallowstalker/online-book-store/modules/bookstore/entity"
+	"github.com/swallowstalker/online-book-store/modules/bookstore/repository"
 	"github.com/swallowstalker/online-book-store/modules/bookstore/service"
+	mock_repository "github.com/swallowstalker/online-book-store/test/mock/modules/bookstore/repository"
 	mock_service "github.com/swallowstalker/online-book-store/test/mock/modules/bookstore/service"
 )
 
 type OrderServiceTestSuite struct {
 	suite.Suite
 
-	repo *mock_service.MockOrderRepository
+	repo   *mock_service.MockOrderRepository
+	txFunc repository.TxStarter
+	tx     *mock_repository.MockTransactionable
 }
 
 func (s *OrderServiceTestSuite) SetupSuite() {
 	ctrl := gomock.NewController(s.T())
 	s.repo = mock_service.NewMockOrderRepository(ctrl)
+	s.tx = mock_repository.NewMockTransactionable(ctrl)
+	s.txFunc = func(ctx context.Context) (pgx.Tx, error) {
+		return s.tx, nil
+	}
 }
 
 func TestOrderServiceRepo(t *testing.T) {
@@ -32,7 +41,7 @@ func TestOrderServiceRepo(t *testing.T) {
 
 func (s *OrderServiceTestSuite) TestGetOrders() {
 	ctx := context.Background()
-	svc := service.NewOrderService(s.repo)
+	svc := service.NewOrderService(s.repo, s.txFunc)
 	now := time.Now()
 
 	svcParams := entity.GetMyOrdersParams{
@@ -46,7 +55,7 @@ func (s *OrderServiceTestSuite) TestGetOrders() {
 			ID:     1,
 			UserID: 123,
 			Email:  "someone@test.com",
-			Details: []entity.BookAmount{
+			Items: []entity.OrderItem{
 				{
 					BookID: 99,
 					Amount: 1,
@@ -86,18 +95,18 @@ func (s *OrderServiceTestSuite) TestGetOrders() {
 
 		result, err := svc.GetOrders(ctx, svcParams)
 		s.Assert().Nil(err)
-		s.Assert().Equal(int64(99), result[0].Details[0].BookID)
+		s.Assert().Equal(int64(99), result[0].Items[0].BookID)
 	})
 }
 
 func (s *OrderServiceTestSuite) TestCreateOrder() {
 	ctx := context.Background()
-	svc := service.NewOrderService(s.repo)
+	svc := service.NewOrderService(s.repo, s.txFunc)
 	now := time.Now()
 
 	svcParams := entity.CreateOrderParams{
 		UserID: 123,
-		Details: []entity.BookAmount{
+		Items: []entity.CreateOrderItemParams{
 			{
 				BookID: 99,
 				Amount: 1,
@@ -106,13 +115,37 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	}
 
 	rowFromDB := &entity.Order{
+		ID:        1,
+		UserID:    123,
+		Email:     "someone@test.com",
+		CreatedAt: now,
+	}
+
+	itemParams := entity.CreateOrderItemParams{
+		OrderID: rowFromDB.ID,
+		BookID:  svcParams.Items[0].BookID,
+		Amount:  svcParams.Items[0].Amount,
+	}
+
+	rowOrderItemFromDB := &entity.OrderItem{
+		ID:        29,
+		OrderID:   rowFromDB.ID,
+		BookID:    svcParams.Items[0].BookID,
+		Amount:    svcParams.Items[0].Amount,
+		CreatedAt: now,
+	}
+
+	expectedOrder := &entity.Order{
 		ID:     1,
 		UserID: 123,
 		Email:  "someone@test.com",
-		Details: []entity.BookAmount{
+		Items: []entity.OrderItem{
 			{
-				BookID: 99,
-				Amount: 1,
+				ID:        29,
+				OrderID:   rowFromDB.ID,
+				BookID:    svcParams.Items[0].BookID,
+				Amount:    svcParams.Items[0].Amount,
+				CreatedAt: now,
 			},
 		},
 		CreatedAt: now,
@@ -121,13 +154,16 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	s.Run("create order validation error", func() {
 		svcParams := entity.CreateOrderParams{
 			UserID: 0,
-			Details: []entity.BookAmount{
+			Items: []entity.CreateOrderItemParams{
 				{
 					BookID: 0,
 					Amount: 0,
 				},
 			},
 		}
+
+		s.tx.EXPECT().Begin(ctx).Return(s.tx, nil).Times(1)
+		s.tx.EXPECT().Rollback(ctx).Return(nil).Times(1)
 
 		result, err := svc.CreateOrder(ctx, svcParams)
 		s.Assert().Nil(result)
@@ -140,13 +176,16 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	s.Run("create order details struct validation error", func() {
 		svcParams := entity.CreateOrderParams{
 			UserID: 1,
-			Details: []entity.BookAmount{
+			Items: []entity.CreateOrderItemParams{
 				{
 					BookID: 0,
 					Amount: 0,
 				},
 			},
 		}
+
+		s.tx.EXPECT().Begin(ctx).Return(s.tx, nil).Times(1)
+		s.tx.EXPECT().Rollback(ctx).Return(nil).Times(1)
 
 		result, err := svc.CreateOrder(ctx, svcParams)
 		s.Assert().Nil(result)
@@ -157,7 +196,10 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	})
 
 	s.Run("create order fail to find book", func() {
-		s.repo.EXPECT().FindBook(ctx, svcParams.Details[0].BookID).
+		s.tx.EXPECT().Begin(ctx).Return(s.tx, nil).Times(1)
+		s.tx.EXPECT().Rollback(ctx).Return(nil).Times(1)
+
+		s.repo.EXPECT().FindBook(ctx, s.tx, svcParams.Items[0].BookID).
 			Return(nil, errorx.ErrNotFound("book not found")).Times(1)
 
 		result, err := svc.CreateOrder(ctx, svcParams)
@@ -169,9 +211,28 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	})
 
 	s.Run("create order repo error", func() {
-		s.repo.EXPECT().FindBook(ctx, svcParams.Details[0].BookID).
+		s.tx.EXPECT().Begin(ctx).Return(s.tx, nil).Times(1)
+		s.tx.EXPECT().Rollback(ctx).Return(nil).Times(1)
+
+		s.repo.EXPECT().FindBook(ctx, s.tx, svcParams.Items[0].BookID).
 			Return(&entity.Book{}, nil).Times(1)
-		s.repo.EXPECT().CreateOrder(ctx, svcParams).
+		s.repo.EXPECT().CreateOrder(ctx, s.tx, svcParams).
+			Return(nil, errors.New("repo error")).Times(1)
+
+		result, err := svc.CreateOrder(ctx, svcParams)
+		s.Assert().Nil(result)
+		s.Assert().Contains(err.Error(), "repo error")
+	})
+
+	s.Run("create order item repo error", func() {
+		s.tx.EXPECT().Begin(ctx).Return(s.tx, nil).Times(1)
+		s.tx.EXPECT().Rollback(ctx).Return(nil).Times(1)
+
+		s.repo.EXPECT().FindBook(ctx, s.tx, svcParams.Items[0].BookID).
+			Return(&entity.Book{}, nil).Times(1)
+		s.repo.EXPECT().CreateOrder(ctx, s.tx, svcParams).
+			Return(rowFromDB, nil).Times(1)
+		s.repo.EXPECT().CreateOrderItem(ctx, s.tx, itemParams).
 			Return(nil, errors.New("repo error")).Times(1)
 
 		result, err := svc.CreateOrder(ctx, svcParams)
@@ -180,13 +241,18 @@ func (s *OrderServiceTestSuite) TestCreateOrder() {
 	})
 
 	s.Run("create order success", func() {
-		s.repo.EXPECT().CreateOrder(ctx, svcParams).
+		s.tx.EXPECT().Begin(ctx).Return(s.tx, nil).Times(1)
+		s.tx.EXPECT().Commit(ctx).Return(nil).Times(1)
+
+		s.repo.EXPECT().CreateOrder(ctx, s.tx, svcParams).
 			Return(rowFromDB, nil).Times(1)
-		s.repo.EXPECT().FindBook(ctx, svcParams.Details[0].BookID).
+		s.repo.EXPECT().CreateOrderItem(ctx, s.tx, itemParams).
+			Return(rowOrderItemFromDB, nil).Times(1)
+		s.repo.EXPECT().FindBook(ctx, s.tx, svcParams.Items[0].BookID).
 			Return(&entity.Book{}, nil).Times(1)
 
 		result, err := svc.CreateOrder(ctx, svcParams)
 		s.Assert().Nil(err)
-		s.Assert().Equal(int64(99), result.Details[0].BookID)
+		s.Assert().Equal(expectedOrder, result)
 	})
 }
