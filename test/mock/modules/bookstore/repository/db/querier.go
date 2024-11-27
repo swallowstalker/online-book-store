@@ -96,21 +96,6 @@ func (mr *MockQuerierMockRecorder) FindBook(ctx, id interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindBook", reflect.TypeOf((*MockQuerier)(nil).FindBook), ctx, id)
 }
 
-// FindOrder mocks base method.
-func (m *MockQuerier) FindOrder(ctx context.Context, id int64) (*db.FindOrderRow, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindOrder", ctx, id)
-	ret0, _ := ret[0].(*db.FindOrderRow)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindOrder indicates an expected call of FindOrder.
-func (mr *MockQuerierMockRecorder) FindOrder(ctx, id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindOrder", reflect.TypeOf((*MockQuerier)(nil).FindOrder), ctx, id)
-}
-
 // FindUser mocks base method.
 func (m *MockQuerier) FindUser(ctx context.Context, email string) (*db.User, error) {
 	m.ctrl.T.Helper()

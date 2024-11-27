@@ -28,41 +28,6 @@ func (q *Queries) CreateOrder(ctx context.Context, userID int64) (*CreateOrderRo
 	return &i, err
 }
 
-const findOrder = `-- name: FindOrder :one
-SELECT o.id, o.user_id, o.book_id, o.amount, o.created_at, o.details, u.email as email, b.name as book_name
-FROM "orders" o
-         JOIN "books" b ON o.book_id = b.id
-         JOIN "users" u ON o.user_id = u.id
-WHERE o.id = $1
-`
-
-type FindOrderRow struct {
-	ID        int64              `db:"id"`
-	UserID    int64              `db:"user_id"`
-	BookID    pgtype.Int8        `db:"book_id"`
-	Amount    pgtype.Int8        `db:"amount"`
-	CreatedAt pgtype.Timestamptz `db:"created_at"`
-	Details   []byte             `db:"details"`
-	Email     string             `db:"email"`
-	BookName  string             `db:"book_name"`
-}
-
-func (q *Queries) FindOrder(ctx context.Context, id int64) (*FindOrderRow, error) {
-	row := q.db.QueryRow(ctx, findOrder, id)
-	var i FindOrderRow
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.BookID,
-		&i.Amount,
-		&i.CreatedAt,
-		&i.Details,
-		&i.Email,
-		&i.BookName,
-	)
-	return &i, err
-}
-
 const getMyOrders = `-- name: GetMyOrders :many
 SELECT o.id as order_id, o.user_id, oi.book_id, oi.amount, u.email as email, o.created_at, oi.id as item_id, oi.created_at as item_created_at
 FROM "orders" o

@@ -21,12 +21,12 @@ import (
 type WrapperTestSuite struct {
 	suite.Suite
 
-	querierRepo *mock_repo.MockQuerier
+	querierRepo *mock_repo.MockQuerierWithTx
 }
 
 func (s *WrapperTestSuite) SetupSuite() {
 	ctrl := gomock.NewController(s.T())
-	s.querierRepo = mock_repo.NewMockQuerier(ctrl)
+	s.querierRepo = mock_repo.NewMockQuerierWithTx(ctrl)
 }
 
 func TestWrapperRepo(t *testing.T) {
@@ -255,10 +255,12 @@ func (s *WrapperTestSuite) TestCreateOrder() {
 	}
 
 	s.Run("create order got querier error", func() {
+		s.querierRepo.EXPECT().WrapTx(nil).
+			Return(s.querierRepo).Times(1)
 		s.querierRepo.EXPECT().CreateOrder(ctx, userID).
 			Return(nil, errors.New("querier error")).Times(1)
 
-		result, err := wrapper.CreateOrder(ctx, wrapperParams)
+		result, err := wrapper.CreateOrder(ctx, nil, wrapperParams)
 		s.Assert().Nil(result)
 
 		goxErr, ok := errorx.Parse(err)
@@ -268,10 +270,12 @@ func (s *WrapperTestSuite) TestCreateOrder() {
 	})
 
 	s.Run("create order successful", func() {
+		s.querierRepo.EXPECT().WrapTx(nil).
+			Return(s.querierRepo).Times(1)
 		s.querierRepo.EXPECT().CreateOrder(ctx, userID).
 			Return(rowFromDB, nil).Times(1)
 
-		result, err := wrapper.CreateOrder(ctx, wrapperParams)
+		result, err := wrapper.CreateOrder(ctx, nil, wrapperParams)
 		s.Assert().Equal(expectedOrder, result)
 		s.Assert().Nil(err)
 	})
@@ -421,10 +425,12 @@ func (s *WrapperTestSuite) TestCreateOrderItem() {
 	}
 
 	s.Run("create order item got querier error", func() {
+		s.querierRepo.EXPECT().WrapTx(nil).
+			Return(s.querierRepo).Times(1)
 		s.querierRepo.EXPECT().CreateOrderItem(ctx, querierParams).
 			Return(nil, errors.New("querier error")).Times(1)
 
-		result, err := wrapper.CreateOrderItem(ctx, wrapperParams)
+		result, err := wrapper.CreateOrderItem(ctx, nil, wrapperParams)
 		s.Assert().Nil(result)
 
 		goxErr, ok := errorx.Parse(err)
@@ -434,10 +440,12 @@ func (s *WrapperTestSuite) TestCreateOrderItem() {
 	})
 
 	s.Run("create order item successful", func() {
+		s.querierRepo.EXPECT().WrapTx(nil).
+			Return(s.querierRepo).Times(1)
 		s.querierRepo.EXPECT().CreateOrderItem(ctx, querierParams).
 			Return(rowFromDB, nil).Times(1)
 
-		result, err := wrapper.CreateOrderItem(ctx, wrapperParams)
+		result, err := wrapper.CreateOrderItem(ctx, nil, wrapperParams)
 		s.Assert().Equal(expectedOrderItem, result)
 		s.Assert().Nil(err)
 	})

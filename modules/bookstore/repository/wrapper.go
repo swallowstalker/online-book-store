@@ -6,6 +6,7 @@ import (
 	"errors"
 	"slices"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/raymondwongso/gogox/errorx"
 
@@ -14,13 +15,17 @@ import (
 )
 
 type DbWrapperRepo struct {
-	db db.Querier
+	db db.QuerierWithTx
 }
 
-func NewDbWrapperRepo(db db.Querier) *DbWrapperRepo {
+func NewDbWrapperRepo(db db.QuerierWithTx) *DbWrapperRepo {
 	return &DbWrapperRepo{
 		db: db,
 	}
+}
+
+func (w *DbWrapperRepo) WrapTx(tx pgx.Tx) db.QuerierWithTx {
+	return w.db.WrapTx(tx)
 }
 
 func (w *DbWrapperRepo) CreateUser(ctx context.Context, email string) (*entity.User, error) {
@@ -71,8 +76,8 @@ func (w *DbWrapperRepo) GetBooks(ctx context.Context, arg entity.GetBooksParams)
 	return resp, nil
 }
 
-func (w *DbWrapperRepo) CreateOrder(ctx context.Context, arg entity.CreateOrderParams) (*entity.Order, error) {
-	result, err := w.db.CreateOrder(ctx, arg.UserID)
+func (w *DbWrapperRepo) CreateOrder(ctx context.Context, tx pgx.Tx, arg entity.CreateOrderParams) (*entity.Order, error) {
+	result, err := w.db.WrapTx(tx).CreateOrder(ctx, arg.UserID)
 
 	if err != nil {
 		return nil, errorx.Wrap(err, errorx.CodeInternal, "internal server error")
@@ -133,8 +138,8 @@ func (w *DbWrapperRepo) GetMyOrders(ctx context.Context, arg entity.GetMyOrdersP
 	return resp, nil
 }
 
-func (w *DbWrapperRepo) FindBook(ctx context.Context, id int64) (*entity.Book, error) {
-	result, err := w.db.FindBook(ctx, id)
+func (w *DbWrapperRepo) FindBook(ctx context.Context, tx pgx.Tx, id int64) (*entity.Book, error) {
+	result, err := w.db.WrapTx(tx).FindBook(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errorx.Wrap(err, errorx.CodeNotFound, "book cannot be found")
@@ -160,8 +165,8 @@ func (w *DbWrapperRepo) FindUserByToken(ctx context.Context, token string) (*ent
 	return result.ToEntity(), nil
 }
 
-func (w *DbWrapperRepo) CreateOrderItem(ctx context.Context, params entity.CreateOrderItemParams) (*entity.OrderItem, error) {
-	result, err := w.db.CreateOrderItem(ctx, db.CreateOrderItemParams{
+func (w *DbWrapperRepo) CreateOrderItem(ctx context.Context, tx pgx.Tx, params entity.CreateOrderItemParams) (*entity.OrderItem, error) {
+	result, err := w.db.WrapTx(tx).CreateOrderItem(ctx, db.CreateOrderItemParams{
 		OrderID: params.OrderID,
 		BookID:  params.BookID,
 		Amount:  params.Amount,
