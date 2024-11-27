@@ -12,40 +12,40 @@ import (
 	entity "github.com/swallowstalker/online-book-store/modules/bookstore/entity"
 )
 
-// MockUserEmailChecker is a mock of UserEmailChecker interface.
-type MockUserEmailChecker struct {
+// MockTokenCheckerRepo is a mock of TokenCheckerRepo interface.
+type MockTokenCheckerRepo struct {
 	ctrl     *gomock.Controller
-	recorder *MockUserEmailCheckerMockRecorder
+	recorder *MockTokenCheckerRepoMockRecorder
 }
 
-// MockUserEmailCheckerMockRecorder is the mock recorder for MockUserEmailChecker.
-type MockUserEmailCheckerMockRecorder struct {
-	mock *MockUserEmailChecker
+// MockTokenCheckerRepoMockRecorder is the mock recorder for MockTokenCheckerRepo.
+type MockTokenCheckerRepoMockRecorder struct {
+	mock *MockTokenCheckerRepo
 }
 
-// NewMockUserEmailChecker creates a new mock instance.
-func NewMockUserEmailChecker(ctrl *gomock.Controller) *MockUserEmailChecker {
-	mock := &MockUserEmailChecker{ctrl: ctrl}
-	mock.recorder = &MockUserEmailCheckerMockRecorder{mock}
+// NewMockTokenCheckerRepo creates a new mock instance.
+func NewMockTokenCheckerRepo(ctrl *gomock.Controller) *MockTokenCheckerRepo {
+	mock := &MockTokenCheckerRepo{ctrl: ctrl}
+	mock.recorder = &MockTokenCheckerRepoMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockUserEmailChecker) EXPECT() *MockUserEmailCheckerMockRecorder {
+func (m *MockTokenCheckerRepo) EXPECT() *MockTokenCheckerRepoMockRecorder {
 	return m.recorder
 }
 
-// FindUser mocks base method.
-func (m *MockUserEmailChecker) FindUser(ctx context.Context, email string) (*entity.User, error) {
+// FindUserByToken mocks base method.
+func (m *MockTokenCheckerRepo) FindUserByToken(ctx context.Context, token string) (*entity.User, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindUser", ctx, email)
+	ret := m.ctrl.Call(m, "FindUserByToken", ctx, token)
 	ret0, _ := ret[0].(*entity.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindUser indicates an expected call of FindUser.
-func (mr *MockUserEmailCheckerMockRecorder) FindUser(ctx, email interface{}) *gomock.Call {
+// FindUserByToken indicates an expected call of FindUserByToken.
+func (mr *MockTokenCheckerRepoMockRecorder) FindUserByToken(ctx, token interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUser", reflect.TypeOf((*MockUserEmailChecker)(nil).FindUser), ctx, email)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserByToken", reflect.TypeOf((*MockTokenCheckerRepo)(nil).FindUserByToken), ctx, token)
 }

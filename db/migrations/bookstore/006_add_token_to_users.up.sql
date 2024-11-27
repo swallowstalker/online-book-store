@@ -1,0 +1,8 @@
+BEGIN;
+
+ALTER TABLE users ADD COLUMN "password" VARCHAR(255) NULL,
+    ADD COLUMN "token" VARCHAR(255) NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_token ON users(token);
+
+COMMIT;

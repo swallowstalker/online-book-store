@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	pgtype "github.com/jackc/pgx/v5/pgtype"
 	db "github.com/swallowstalker/online-book-store/modules/bookstore/repository/db"
 )
 
@@ -108,6 +109,21 @@ func (m *MockQuerier) FindUser(ctx context.Context, email string) (*db.User, err
 func (mr *MockQuerierMockRecorder) FindUser(ctx, email interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUser", reflect.TypeOf((*MockQuerier)(nil).FindUser), ctx, email)
+}
+
+// FindUserByToken mocks base method.
+func (m *MockQuerier) FindUserByToken(ctx context.Context, token pgtype.Text) (*db.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindUserByToken", ctx, token)
+	ret0, _ := ret[0].(*db.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindUserByToken indicates an expected call of FindUserByToken.
+func (mr *MockQuerierMockRecorder) FindUserByToken(ctx, token interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserByToken", reflect.TypeOf((*MockQuerier)(nil).FindUserByToken), ctx, token)
 }
 
 // GetBooks mocks base method.

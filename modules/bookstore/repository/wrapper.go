@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/raymondwongso/gogox/errorx"
 
 	"github.com/swallowstalker/online-book-store/modules/bookstore/entity"
@@ -117,4 +118,19 @@ func (w *DbWrapperRepo) FindBook(ctx context.Context, id int64) (*entity.Book, e
 	}
 
 	return result.ToEntity(), err
+}
+
+func (w *DbWrapperRepo) FindUserByToken(ctx context.Context, token string) (*entity.User, error) {
+	result, err := w.db.FindUserByToken(ctx, pgtype.Text{
+		String: token,
+		Valid:  true,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, sql.ErrNoRows
+		}
+		return nil, errorx.Wrap(err, errorx.CodeInternal, "internal server error")
+	}
+
+	return result.ToEntity(), nil
 }

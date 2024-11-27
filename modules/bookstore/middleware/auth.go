@@ -2,48 +2,44 @@ package middleware
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
-	"github.com/go-playground/validator/v10"
-
-	"github.com/swallowstalker/online-book-store/modules/bookstore/customerror"
 	"github.com/swallowstalker/online-book-store/modules/bookstore/entity"
 )
 
-type UserEmailChecker interface {
-	FindUser(ctx context.Context, email string) (*entity.User, error)
+type TokenCheckerRepo interface {
+	FindUserByToken(ctx context.Context, token string) (*entity.User, error)
 }
 
 type Auth struct {
-	userRepo  UserEmailChecker
-	validator *validator.Validate
+	userRepo TokenCheckerRepo
 }
 
-func NewAuthMiddleware(userRepo UserEmailChecker) *Auth {
+func NewAuthMiddleware(userRepo TokenCheckerRepo) *Auth {
 	return &Auth{
-		userRepo:  userRepo,
-		validator: validator.New(),
+		userRepo: userRepo,
 	}
 }
 
-func (m *Auth) CheckEmailMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func (m *Auth) CheckTokenMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		auth := r.Header.Get("Authorization")
-		email := strings.TrimSpace(auth)
-		if err := m.validator.Var(email, "required,email"); err != nil {
+		token := strings.TrimSpace(strings.TrimPrefix(auth, "Bearer "))
+		if token == "" || strings.Contains(token, "Bearer") {
 			w.WriteHeader(http.StatusUnauthorized)
 			_ = json.NewEncoder(w).Encode(entity.ErrorHandleResponse{Message: "Unauthorized"})
 			return
 		}
 
-		ctx := r.Context()
-		user, err := m.userRepo.FindUser(ctx, email)
+		user, err := m.userRepo.FindUserByToken(r.Context(), token)
 		if err != nil {
-			if customerror.IsErrNotFound(err) {
+			if errors.Is(err, sql.ErrNoRows) {
 				w.WriteHeader(http.StatusUnauthorized)
 				_ = json.NewEncoder(w).Encode(entity.ErrorHandleResponse{Message: "Unauthorized"})
 				return
@@ -54,6 +50,7 @@ func (m *Auth) CheckEmailMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
+		ctx := r.Context()
 		ctx = context.WithValue(ctx, entity.UserContextKey{}, user.ID)
 		r = r.WithContext(ctx)
 

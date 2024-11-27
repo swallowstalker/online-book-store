@@ -6,6 +6,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
@@ -14,6 +16,7 @@ type Querier interface {
 	FindBook(ctx context.Context, id int64) (*Book, error)
 	FindOrder(ctx context.Context, id int64) (*FindOrderRow, error)
 	FindUser(ctx context.Context, email string) (*User, error)
+	FindUserByToken(ctx context.Context, token pgtype.Text) (*User, error)
 	GetBooks(ctx context.Context, arg GetBooksParams) ([]*Book, error)
 	GetMyOrders(ctx context.Context, arg GetMyOrdersParams) ([]*GetMyOrdersRow, error)
 }
