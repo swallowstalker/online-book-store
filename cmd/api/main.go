@@ -9,6 +9,7 @@ import (
 	"github.com/joeshaw/envdecode"
 	"github.com/joho/godotenv"
 	"github.com/julienschmidt/httprouter"
+
 	"github.com/swallowstalker/online-book-store/modules/bookstore/handler"
 	"github.com/swallowstalker/online-book-store/modules/bookstore/middleware"
 	"github.com/swallowstalker/online-book-store/modules/bookstore/repository"
@@ -63,8 +64,8 @@ func main() {
 	router := httprouter.New()
 	router.HandlerFunc(http.MethodPost, "/v1/users", h.CreateUser)
 	router.HandlerFunc(http.MethodGet, "/v1/books", h.GetBooks)
-	router.HandlerFunc(http.MethodPost, "/v1/orders", m.CheckEmailMiddleware(h.CreateOrder))
-	router.HandlerFunc(http.MethodGet, "/v1/orders", m.CheckEmailMiddleware(h.GetMyOrders))
+	router.HandlerFunc(http.MethodPost, "/v1/orders", m.CheckTokenMiddleware(h.CreateOrder))
+	router.HandlerFunc(http.MethodGet, "/v1/orders", m.CheckTokenMiddleware(h.GetMyOrders))
 
 	fmt.Println("server started")
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", config.AppPort), router); err != nil {

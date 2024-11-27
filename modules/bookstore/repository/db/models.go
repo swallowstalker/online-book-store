@@ -27,4 +27,6 @@ type User struct {
 	ID        int64              `db:"id"`
 	Email     string             `db:"email"`
 	CreatedAt pgtype.Timestamptz `db:"created_at"`
+	Password  pgtype.Text        `db:"password"`
+	Token     pgtype.Text        `db:"token"`
 }

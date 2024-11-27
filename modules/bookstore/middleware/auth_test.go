@@ -12,10 +12,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/julienschmidt/httprouter"
-	"github.com/raymondwongso/gogox/errorx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
 	"github.com/swallowstalker/online-book-store/modules/bookstore/entity"
 	"github.com/swallowstalker/online-book-store/modules/bookstore/middleware"
 	mock_middleware "github.com/swallowstalker/online-book-store/test/mock/modules/bookstore/middleware"
@@ -24,19 +24,19 @@ import (
 type MiddlewareTestSuite struct {
 	suite.Suite
 
-	userRepo *mock_middleware.MockUserEmailChecker
+	userRepo *mock_middleware.MockTokenCheckerRepo
 }
 
 func (s *MiddlewareTestSuite) SetupSuite() {
 	ctrl := gomock.NewController(s.T())
-	s.userRepo = mock_middleware.NewMockUserEmailChecker(ctrl)
+	s.userRepo = mock_middleware.NewMockTokenCheckerRepo(ctrl)
 }
 
 func TestWrapperRepo(t *testing.T) {
 	suite.Run(t, new(MiddlewareTestSuite))
 }
 
-func (s *MiddlewareTestSuite) TestCreateUser() {
+func (s *MiddlewareTestSuite) TestCheckToken() {
 	middleware := middleware.NewAuthMiddleware(s.userRepo)
 	expectedUser := &entity.User{
 		ID:    123,
@@ -52,7 +52,7 @@ func (s *MiddlewareTestSuite) TestCreateUser() {
 
 		handlerFunc := func(_ http.ResponseWriter, _ *http.Request) {}
 
-		router.HandlerFunc(http.MethodGet, "/test-middleware", middleware.CheckEmailMiddleware(handlerFunc))
+		router.HandlerFunc(http.MethodGet, "/test-middleware", middleware.CheckTokenMiddleware(handlerFunc))
 		router.ServeHTTP(w, r)
 		resp := w.Result()
 
@@ -67,41 +67,19 @@ func (s *MiddlewareTestSuite) TestCreateUser() {
 		resp.Body.Close()
 	})
 
-	s.Run("auth header is not email", func() {
-		r := httptest.NewRequest(http.MethodGet, "http://localhost/test-middleware", nil)
-		r.Header.Set("Authorization", "ahoy ahoy")
-		w := httptest.NewRecorder()
-
-		router := httprouter.New()
-
-		handlerFunc := func(_ http.ResponseWriter, _ *http.Request) {}
-
-		router.HandlerFunc(http.MethodGet, "/test-middleware", middleware.CheckEmailMiddleware(handlerFunc))
-		router.ServeHTTP(w, r)
-		resp := w.Result()
-
-		assert.Equal(s.T(), http.StatusUnauthorized, resp.StatusCode)
-		rawRespBody, err := io.ReadAll(resp.Body)
-		require.NoError(s.T(), err)
-		expected, err := json.Marshal(map[string]string{"message": "Unauthorized"})
-		require.NoError(s.T(), err)
-
-		assert.JSONEq(s.T(), string(expected), string(rawRespBody))
-	})
-
 	s.Run("no user for given email", func() {
 		r := httptest.NewRequest(http.MethodGet, "http://localhost/test-middleware", nil)
-		r.Header.Set("Authorization", "someone@test.com")
+		r.Header.Set("Authorization", "Bearer sometoken")
 		w := httptest.NewRecorder()
 
-		s.userRepo.EXPECT().FindUser(context.Background(), "someone@test.com").
-			Return(nil, errorx.Wrap(sql.ErrNoRows, errorx.CodeNotFound, "user not found")).Times(1)
+		s.userRepo.EXPECT().FindUserByToken(context.Background(), "sometoken").
+			Return(nil, sql.ErrNoRows).Times(1)
 
 		router := httprouter.New()
 
 		handlerFunc := func(_ http.ResponseWriter, _ *http.Request) {}
 
-		router.HandlerFunc(http.MethodGet, "/test-middleware", middleware.CheckEmailMiddleware(handlerFunc))
+		router.HandlerFunc(http.MethodGet, "/test-middleware", middleware.CheckTokenMiddleware(handlerFunc))
 		router.ServeHTTP(w, r)
 		resp := w.Result()
 
@@ -116,17 +94,17 @@ func (s *MiddlewareTestSuite) TestCreateUser() {
 
 	s.Run("user repo error", func() {
 		r := httptest.NewRequest(http.MethodGet, "http://localhost/test-middleware", nil)
-		r.Header.Set("Authorization", "someone@test.com")
+		r.Header.Set("Authorization", "Bearer sometoken")
 		w := httptest.NewRecorder()
 
-		s.userRepo.EXPECT().FindUser(context.Background(), "someone@test.com").
+		s.userRepo.EXPECT().FindUserByToken(context.Background(), "sometoken").
 			Return(nil, errors.New("something happened")).Times(1)
 
 		router := httprouter.New()
 
 		handlerFunc := func(_ http.ResponseWriter, _ *http.Request) {}
 
-		router.HandlerFunc(http.MethodGet, "/test-middleware", middleware.CheckEmailMiddleware(handlerFunc))
+		router.HandlerFunc(http.MethodGet, "/test-middleware", middleware.CheckTokenMiddleware(handlerFunc))
 		router.ServeHTTP(w, r)
 		resp := w.Result()
 
@@ -141,10 +119,10 @@ func (s *MiddlewareTestSuite) TestCreateUser() {
 
 	s.Run("success", func() {
 		r := httptest.NewRequest(http.MethodGet, "http://localhost/test-middleware", nil)
-		r.Header.Set("Authorization", "someone@test.com")
+		r.Header.Set("Authorization", "Bearer sometoken")
 		w := httptest.NewRecorder()
 
-		s.userRepo.EXPECT().FindUser(context.Background(), "someone@test.com").
+		s.userRepo.EXPECT().FindUserByToken(context.Background(), "sometoken").
 			Return(expectedUser, nil).Times(1)
 
 		router := httprouter.New()
@@ -160,7 +138,7 @@ func (s *MiddlewareTestSuite) TestCreateUser() {
 			require.NoError(s.T(), err)
 		}
 
-		router.HandlerFunc(http.MethodGet, "/test-middleware", middleware.CheckEmailMiddleware(handlerFunc))
+		router.HandlerFunc(http.MethodGet, "/test-middleware", middleware.CheckTokenMiddleware(handlerFunc))
 		router.ServeHTTP(w, r)
 		resp := w.Result()
 

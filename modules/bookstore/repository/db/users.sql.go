@@ -7,26 +7,57 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO "users" ("email", "created_at") VALUES ($1, NOW()) ON CONFLICT(email) DO NOTHING RETURNING id, email, created_at
+INSERT INTO "users" ("email", "created_at") VALUES ($1, NOW()) ON CONFLICT(email) DO NOTHING RETURNING id, email, created_at, password, token
 `
 
 func (q *Queries) CreateUser(ctx context.Context, email string) (*User, error) {
 	row := q.db.QueryRow(ctx, createUser, email)
 	var i User
-	err := row.Scan(&i.ID, &i.Email, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.CreatedAt,
+		&i.Password,
+		&i.Token,
+	)
 	return &i, err
 }
 
 const findUser = `-- name: FindUser :one
-SELECT id, email, created_at FROM "users" WHERE "email" = $1
+SELECT id, email, created_at, password, token FROM "users" WHERE "email" = $1
 `
 
 func (q *Queries) FindUser(ctx context.Context, email string) (*User, error) {
 	row := q.db.QueryRow(ctx, findUser, email)
 	var i User
-	err := row.Scan(&i.ID, &i.Email, &i.CreatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.CreatedAt,
+		&i.Password,
+		&i.Token,
+	)
+	return &i, err
+}
+
+const findUserByToken = `-- name: FindUserByToken :one
+SELECT id, email, created_at, password, token FROM "users" WHERE "token" = $1
+`
+
+func (q *Queries) FindUserByToken(ctx context.Context, token pgtype.Text) (*User, error) {
+	row := q.db.QueryRow(ctx, findUserByToken, token)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.CreatedAt,
+		&i.Password,
+		&i.Token,
+	)
 	return &i, err
 }

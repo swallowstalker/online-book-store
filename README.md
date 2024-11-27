@@ -1,4 +1,4 @@
-# Gotu - Take home test
+# Online book store - take home test
 
 Hi there! This application requires 
 - [Docker](https://www.docker.com/), 
